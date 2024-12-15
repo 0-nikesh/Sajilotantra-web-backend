@@ -1,24 +1,23 @@
-const express= require("express")
-const connectDB = require("./config/db")
-const app= express();
-const CustomerRouter= require("./routes/CustomerRoute");
-const GroundRouter= require("./routes/GroundRoute");
-const FileRouter= require("./routes/FileRoute");
+const express = require("express");
+const dotenv = require("dotenv");
+const connectDB = require("./config/db");
 
+dotenv.config();
 connectDB();
 
-
+const app = express();
 app.use(express.json());
 
-app.use("/api/customer",CustomerRouter);
-app.use("/api/ground",GroundRouter);
-app.use("/file",FileRouter);
+// Routes
+app.use("/api/users", require("./routes/UserRoute"));
+app.use("/api/users", require("./routes/UserProfileRoute"));
+app.use("/api/profiles", require("./routes/UserProfileRoute"));
+app.use("/api/posts", require("./routes/PostRoute"));
+app.use("/api/guidances", require("./routes/GuidanceRoute"));
+app.use("/api/notifications", require("./routes/NotificationRoute"));
+app.use("/api/feedbacks", require("./routes/FeedbackRoute"));
 
-
-
-const port= 3000;
-
-app.listen(port,()=>{
-    console.log(`server is running on port http://localhost:${port}`)
-})
-
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
