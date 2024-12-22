@@ -51,7 +51,7 @@ const protect = async (req, res, next) => {
         return res.status(404).json({ message: "User not found" });
       }
 
-      next(); // Proceed to the next middleware or controller
+      next();
     } catch (error) {
       console.error("JWT verification failed:", error.message);
       return res.status(401).json({ message: "Not authorized, token failed" });
