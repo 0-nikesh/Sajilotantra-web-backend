@@ -5,12 +5,12 @@ const { hashPassword, matchPassword } = require("../utils/hashPassword");
 
 // Register User
 const registerUser = async (req, res) => {
-  const { fname, lname, email, password } = req.body;
+  const { fname, lname, email, password, isAdmin } = req.body;
   const userExists = await User.findOne({ email });
   if (userExists) return res.status(400).json({ message: "User already exists" });
 
   const hashedPassword = await hashPassword(password);
-  const user = await User.create({ fname, lname, email, password: hashedPassword });
+  const user = await User.create({ fname, lname, email, password: hashedPassword, isAdmin });
   res.status(201).json({
     _id: user._id,
     email: user.email,
