@@ -5,6 +5,7 @@ const submitFeedback = async (req, res) => {
   res.status(201).json(feedback);
 };
 
+
 const getAllFeedback = async (req, res) => {
   const feedback = await Feedback.find();
   res.json(feedback);
