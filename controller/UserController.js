@@ -1,6 +1,8 @@
 const User = require("../model/User");
 const generateToken = require("../utils/generateToken");
 const { hashPassword, matchPassword } = require("../utils/hashPassword");
+const jwt = require("jsonwebtoken");
+
 
 
 // Register User
@@ -35,8 +37,12 @@ const loginUser = async (req, res) => {
 
 // Get All Users
 const getAllUsers = async (req, res) => {
-  const users = await User.find({});
-  res.json(users);
+  try {
+    const users = await User.find(); // Admins can see all users
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch users", error: error.message });
+  }
 };
 
 // Get User by ID
@@ -53,4 +59,17 @@ const deleteUser = async (req, res) => {
   else res.status(404).json({ message: "User not found" });
 };
 
-module.exports = { registerUser, loginUser, getAllUsers, getUserById, deleteUser };
+const getProfile = async (req, res) => {
+  try {
+    console.log("Authenticated User:", req.user); // Debug
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user profile", error: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, getAllUsers, getUserById, deleteUser, getProfile };
