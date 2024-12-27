@@ -23,4 +23,32 @@ const deletePost = async (req, res) => {
   else res.status(404).json({ message: "Post not found" });
 };
 
-module.exports = { createPost, getAllPosts, getPostById, deletePost };
+const { createUserNotification } = require("../utils/notificationHelper");
+
+// Like a post (example endpoint logic)
+const likePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    post.like_count += 1;
+    await post.save();
+
+    // Send a notification to the post owner
+    await createUserNotification(
+      "Post Liked",
+      `Your post "${post.caption}" was liked!`,
+      post.user_id
+    );
+
+    res.json({ message: "Post liked successfully", post });
+  } catch (error) {
+    res.status(500).json({ message: "Error liking post" });
+  }
+};
+
+
+
+module.exports = { createPost, getAllPosts, getPostById, deletePost, likePost };
