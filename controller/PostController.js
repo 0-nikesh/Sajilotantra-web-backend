@@ -49,6 +49,31 @@ const likePost = async (req, res) => {
   }
 };
 
+const addComment = async (req, res) => {
+  const { commentText } = req.body;
+
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    post.comment += 1; // Increment comment count or handle comment logic
+    await post.save();
+
+    // Send a notification to the post owner
+    await createUserNotification(
+      "New Comment",
+      `Your post "${post.caption}" received a new comment.`,
+      post.user_id
+    );
+
+    res.json({ message: "Comment added successfully", post });
+  } catch (error) {
+    res.status(500).json({ message: "Error adding comment" });
+  }
+};
 
 
-module.exports = { createPost, getAllPosts, getPostById, deletePost, likePost };
+
+module.exports = { createPost, getAllPosts, getPostById, deletePost, likePost, addComment };
