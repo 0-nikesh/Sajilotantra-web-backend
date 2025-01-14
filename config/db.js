@@ -1,12 +1,12 @@
-const mongoose=require("mongoose");
+import mongoose from "mongoose";
 
-const connectDB = async()=>{
-    try{
+const connectDB = async () => {
+    try {
         await mongoose.connect("mongodb://localhost:27017/sajilotantra");
         console.log("Connected to mongodb")
-    }catch(e){
+    } catch (e) {
         console.log("Not connectd")
     }
 }
 
-module.exports=connectDB;
+export default connectDB; // Export as default
