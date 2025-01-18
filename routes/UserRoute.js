@@ -1,25 +1,24 @@
-const express = require("express");
-const { protect, admin } = require("../middleware/authMiddleware");
-
-const {
-  registerUser,
-  loginUser,
-  getAllUsers,
-  getUserById,
+import express from 'express'; // Change 'require' to 'import'
+import {
   deleteUser,
+  getAllUsers,
   getProfile,
-} = require("../controller/UserController");
+  getUserById,
+  loginUser,
+  registerUser
+} from '../controller/UserController.js'; // Change 'require' to 'import'
+import { admin, protect } from '../middleware/authMiddleware.js'; // Change 'require' to 'import'
 
 const router = express.Router();
 
 // General user actions
-router.post("/register", registerUser); // User registration
-router.post("/login", loginUser);       // User login
+router.post("/register", registerUser);  // User registration
+router.post("/login", loginUser);        // User login
 
 // Admin-only actions (e.g., get all users, delete users)
-router.get("/all", protect, admin, getAllUsers);       // Get all users (protected)
-router.get("/:id", protect, admin, getUserById);   // Get a user by ID (protected)
-router.delete("/:id", protect, admin, deleteUser); // Delete a user (protected)
+router.get("/all", protect, admin, getAllUsers);      // Get all users (protected)
+router.get("/:id", protect, admin, getUserById);      // Get a user by ID (protected)
+router.delete("/:id", protect, admin, deleteUser);    // Delete a user (protected)
 router.get("/profile", protect, getProfile);
 
-module.exports = router;
+export default router;  // Change 'module.exports' to 'export default'
