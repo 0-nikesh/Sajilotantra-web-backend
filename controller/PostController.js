@@ -1,4 +1,5 @@
-const Post = require("../model/Post");
+import Post from "../model/Post.js";
+import createUserNotification from '../utils/notificationHelper.js';
 
 const createPost = async (req, res) => {
   const { caption, category, image, user_id, like_count, comment } = req.body;
@@ -22,8 +23,6 @@ const deletePost = async (req, res) => {
   if (post) res.json({ message: "Post deleted" });
   else res.status(404).json({ message: "Post not found" });
 };
-
-const { createUserNotification } = require("../utils/notificationHelper");
 
 const likePost = async (req, res) => {
   try {
@@ -91,4 +90,5 @@ const addComment = async (req, res) => {
 
 
 
-module.exports = { createPost, getAllPosts, getPostById, deletePost, likePost, addComment };
+export { addComment, createPost, deletePost, getAllPosts, getPostById, likePost };
+

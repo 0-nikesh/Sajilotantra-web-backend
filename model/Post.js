@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from 'mongoose';
 
 const PostSchema = new mongoose.Schema({
   caption: String,
@@ -11,4 +11,5 @@ const PostSchema = new mongoose.Schema({
   liked_by: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }] // Track users who liked the post
 });
 
-module.exports = mongoose.model("Post", PostSchema);
+const Post = mongoose.model('Post', PostSchema);
+export default Post;
