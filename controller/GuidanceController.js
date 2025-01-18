@@ -1,5 +1,4 @@
-const Guidance = require("../model/Guidance");
-
+import Guidance from "../model/Guidance.js";
 // Create a new guidance (Admin-only action)
 const createGuidance = async (req, res) => {
   try {
@@ -101,7 +100,7 @@ const updateGuidance = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   createGuidance,
   getAllGuidances,
   getGuidanceById,

@@ -1,12 +1,11 @@
-const express = require("express");
-const {
+import { admin, protect } from "../middleware/authMiddleware.js";
+import express from ("express");
+import {
     createGuidance,
     getAllGuidances,
     getGuidanceById,
     updateGuidance,
-} = require("../controller/GuidanceController");
-const { protect, admin } = require("../middleware/authMiddleware");
-
+} from ("../controller/GuidanceController.js");
 const router = express.Router();
 
 router.post("/post", protect, admin, createGuidance);
@@ -17,4 +16,4 @@ router.get("/:id", getGuidanceById);
 
 router.put("/:id", protect, admin, updateGuidance);
 
-module.exports = router;
+export default router;

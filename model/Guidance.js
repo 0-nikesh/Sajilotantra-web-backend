@@ -11,8 +11,7 @@
 
 // module.exports = mongoose.model("Guidance", GuidanceSchema);
 
-const mongoose = require("mongoose");
-
+import mongoose from 'mongoose';
 const GuidanceSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
@@ -23,4 +22,5 @@ const GuidanceSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now } // Optional: track when the guidance was added
 });
 
-module.exports = mongoose.model("Guidance", GuidanceSchema);
+const Guidance = mongoose.model('Guidance', GuidanceSchema);
+export default Guidance;
