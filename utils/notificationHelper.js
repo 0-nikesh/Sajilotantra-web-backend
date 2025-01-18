@@ -1,5 +1,4 @@
-const Notification = require("../model/Notification");
-
+import Notification from "../model/Notification.js";
 const createUserNotification = async (title, description, userId) => {
     try {
         await Notification.create({
@@ -12,4 +11,4 @@ const createUserNotification = async (title, description, userId) => {
     }
 };
 
-module.exports = { createUserNotification };
+export default createUserNotification;
