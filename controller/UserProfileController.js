@@ -1,6 +1,5 @@
-const User = require("../model/User");
-const UserProfile = require("../model/UserProfile"); // Import UserProfile schema
-const { hashPassword } = require("../utils/hashPassword");
+import User from "../model/User.js";
+import UserProfile from "../model/UserProfile.js";
 
 // Get the profile of the authenticated user
 const getUserProfile = async (req, res) => {
@@ -31,53 +30,60 @@ const getUserProfile = async (req, res) => {
 // Update the profile of the authenticated user
 const updateUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    const userProfile = await UserProfile.findOne({ user_id: req.user.id });
+    const userId = req.user.id; // Assuming `req.user.id` is populated by `protect` middleware
+    const user = await User.findById(userId);
 
-    if (user) {
-      // Update basic user fields
-      user.fname = req.body.fname || user.fname;
-      user.lname = req.body.lname || user.lname;
-      user.email = req.body.email || user.email;
-      if (req.body.password) {
-        user.password = await hashPassword(req.body.password); // Hash new password
-      }
-      await user.save();
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-      // Update user profile information (bio, image, cover)
-      if (userProfile) {
-        // If user profile exists, update it
-        userProfile.bio = req.body.bio || userProfile.bio;
-        userProfile.image = req.body.image || userProfile.image;
-        userProfile.cover = req.body.cover || userProfile.cover;
-        await userProfile.save();
-      } else {
-        // If no profile exists, create a new one
-        const newProfile = new UserProfile({
-          user_id: req.user.id,
-          bio: req.body.bio || "",
-          image: req.body.image || "",
-          cover: req.body.cover || "",
-        });
-        await newProfile.save();
-      }
+    // Update user fields
+    user.fname = req.body.fname || user.fname;
+    user.lname = req.body.lname || user.lname;
+    user.email = req.body.email || user.email;
 
-      res.json({
-        id: user._id,
-        fname: user.fname,
-        lname: user.lname,
-        email: user.email,
-        bio: req.body.bio || userProfile.bio || "",
-        image: req.body.image || userProfile.image || "",
-        cover: req.body.cover || userProfile.cover || "",
+    // If password is provided, update it (assuming you hash it elsewhere)
+    if (req.body.password) {
+      user.password = req.body.password;
+    }
+
+    await user.save();
+
+    // Handle the user profile
+    let userProfile = await UserProfile.findOne({ user_id: userId });
+
+    if (!userProfile) {
+      // Create a new profile if it doesn't exist
+      userProfile = new UserProfile({
+        user_id: userId,
+        bio: req.body.bio || "",
+        image: req.files.image ? req.files.image[0].path : "",
+        cover: req.files.cover ? req.files.cover[0].path : "",
       });
     } else {
-      res.status(404).json({ message: "User not found" });
+      // Update existing profile
+      userProfile.bio = req.body.bio || userProfile.bio;
+      userProfile.image = req.files.image ? req.files.image[0].path : userProfile.image;
+      userProfile.cover = req.files.cover ? req.files.cover[0].path : userProfile.cover;
     }
+
+    await userProfile.save();
+
+    res.json({
+      id: user._id,
+      fname: user.fname,
+      lname: user.lname,
+      email: user.email,
+      bio: userProfile.bio,
+      image: userProfile.image,
+      cover: userProfile.cover,
+    });
   } catch (error) {
     console.error("Error updating user profile:", error.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-module.exports = { getUserProfile, updateUserProfile };
+
+export { getUserProfile, updateUserProfile };
+

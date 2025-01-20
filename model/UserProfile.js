@@ -1,5 +1,4 @@
-const mongoose = require("mongoose");
-
+import mongoose from "mongoose";
 const UserProfileSchema = new mongoose.Schema({
   image: String,
   cover: String,
@@ -7,4 +6,5 @@ const UserProfileSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }
 });
 
-module.exports = mongoose.model("UserProfile", UserProfileSchema);
+const UserProfile = mongoose.model('UserProfile', UserProfileSchema);
+export default UserProfile;

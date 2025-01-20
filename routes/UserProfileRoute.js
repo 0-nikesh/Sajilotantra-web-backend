@@ -1,16 +1,25 @@
-const express = require("express");
-const {
+import express from "express";
+import {
   getUserProfile,
   updateUserProfile,
-} = require("../controller/UserProfileController");
+} from "../controller/UserProfileController.js";
+import { protect } from "../middleware/authMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
 
-const { protect } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 // Route to get the authenticated user's profile
 router.get("/profile", protect, getUserProfile);
 
-// Route to update the authenticated user's profile
-router.put("/profile", protect, updateUserProfile);
+// Route to update the authenticated user's profile (with file upload)
+router.put(
+  "/profile",
+  protect,
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "cover", maxCount: 1 },
+  ]),
+  updateUserProfile
+);
 
-module.exports = router;
+export default router;
