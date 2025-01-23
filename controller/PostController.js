@@ -1,11 +1,39 @@
 import Post from "../model/Post.js";
+import upload from "../utils/multer.js"; // Multer middleware for Cloudinary uploads
 import createUserNotification from '../utils/notificationHelper.js';
-
 const createPost = async (req, res) => {
-  const { caption, category, image, user_id, like_count, comment } = req.body;
-  const post = await Post.create({ caption, category, image, user_id, like_count, comment });
-  res.status(201).json(post);
+  req.folder = `posts/${req.user.id}`; // Cloudinary folder for posts
+
+  upload.array("images", 5)(req, res, async (err) => {
+    if (err) {
+      console.error("File upload error:", err);
+      return res.status(500).json({ message: "File upload failed", error: err });
+    }
+
+    try {
+      const { caption, category } = req.body;
+
+      if (!caption || !category) {
+        return res.status(400).json({ message: "Caption and category are required." });
+      }
+
+      const newPost = new Post({
+        caption,
+        category,
+        user_id: req.user.id,
+        images: req.files.map((file) => file.path),
+      });
+
+      const savedPost = await newPost.save();
+
+      res.status(201).json({ message: "Post created successfully", data: savedPost });
+    } catch (error) {
+      console.error("Error creating post:", error);
+      res.status(500).json({ message: "Error creating post" });
+    }
+  });
 };
+
 
 const getAllPosts = async (req, res) => {
   const posts = await Post.find({});
@@ -64,7 +92,7 @@ const likePost = async (req, res) => {
 
 
 const addComment = async (req, res) => {
-  const { commentText } = req.body;
+  const { commentText } = req.body; // Extract comment text
 
   try {
     const post = await Post.findById(req.params.id);
@@ -72,23 +100,52 @@ const addComment = async (req, res) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    post.comment += 1; // Increment comment count or handle comment logic
+    // Add new comment
+    const comment = {
+      user: req.user._id, // ID of the authenticated user
+      text: commentText,  // The comment text
+    };
+
+    post.comments.push(comment); // Add the comment to the post
     await post.save();
 
     // Send a notification to the post owner
-    await createUserNotification(
-      "New Comment",
-      `Your post "${post.caption}" received a new comment.`,
-      post.user_id
-    );
+    if (post.user_id.toString() !== req.user._id.toString()) {
+      await createUserNotification(
+        "New Comment",
+        `Your post "${post.caption}" received a comment: "${commentText}".`,
+        post.user_id
+      );
+    }
 
-    res.json({ message: "Comment added successfully", post });
+    res.status(201).json({
+      message: "Comment added successfully",
+      comments: post.comments, // Return all comments for the post
+    });
   } catch (error) {
+    console.error("Error adding comment:", error);
     res.status(500).json({ message: "Error adding comment" });
+  }
+};
+
+const getCommentsForPost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("comments.user", "fname lname email"); // Populate user details
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    res.json({
+      postId: post._id,
+      comments: post.comments, // Return all comments with user details
+    });
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ message: "Error fetching comments" });
   }
 };
 
 
 
-export { addComment, createPost, deletePost, getAllPosts, getPostById, likePost };
+export { addComment, createPost, deletePost, getAllPosts, getCommentsForPost, getPostById, likePost };
 
