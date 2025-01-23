@@ -1,5 +1,6 @@
 import User from "../model/User.js";
 import UserProfile from "../model/UserProfile.js";
+import upload from "../utils/multer.js";
 
 // Get the profile of the authenticated user
 const getUserProfile = async (req, res) => {
@@ -29,61 +30,64 @@ const getUserProfile = async (req, res) => {
 
 // Update the profile of the authenticated user
 const updateUserProfile = async (req, res) => {
-  try {
-    const userId = req.user.id; // Assuming `req.user.id` is populated by `protect` middleware
-    const user = await User.findById(userId);
+  // Define the folder for Cloudinary dynamically based on user ID
+  req.folder = `user-profile/${req.user.id}`; // Cloudinary folder for user profiles
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+  // Multer middleware for handling file uploads
+  upload.fields([
+    { name: "profileImage", maxCount: 1 }, // Accept 1 profile image
+    { name: "coverImage", maxCount: 1 }, // Accept 1 cover image
+  ])(req, res, async (err) => {
+    if (err) {
+      console.error("Multer error:", err);
+      return res.status(500).json({ message: "File upload failed", error: err });
     }
 
-    // Update user fields
-    user.fname = req.body.fname || user.fname;
-    user.lname = req.body.lname || user.lname;
-    user.email = req.body.email || user.email;
+    try {
+      const { bio } = req.body; // Other fields in the request body
+      const updates = {};
 
-    // If password is provided, update it (assuming you hash it elsewhere)
-    if (req.body.password) {
-      user.password = req.body.password;
-    }
+      console.log("Request body:", req.body);
+      console.log("Uploaded files:", req.files);
 
-    await user.save();
+      // Update profile image if provided
+      if (req.files && req.files.profileImage && req.files.profileImage[0]) {
+        updates.image = req.files.profileImage[0].path; // Cloudinary URL for profile image
+      }
 
-    // Handle the user profile
-    let userProfile = await UserProfile.findOne({ user_id: userId });
+      // Update cover image if provided
+      if (req.files && req.files.coverImage && req.files.coverImage[0]) {
+        updates.cover = req.files.coverImage[0].path; // Cloudinary URL for cover image
+      }
 
-    if (!userProfile) {
-      // Create a new profile if it doesn't exist
-      userProfile = new UserProfile({
-        user_id: userId,
-        bio: req.body.bio || "",
-        image: req.files.image ? req.files.image[0].path : "",
-        cover: req.files.cover ? req.files.cover[0].path : "",
+      // Update bio or other fields
+      if (bio) {
+        updates.bio = bio;
+      }
+
+      // Ensure the user is updating their own profile
+      const userProfile = await UserProfile.findOne({ user_id: req.user.id });
+      if (!userProfile && Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "Nothing to update" });
+      }
+
+      // Find and update the user profile
+      const updatedProfile = await UserProfile.findOneAndUpdate(
+        { user_id: req.user.id },
+        updates,
+        { new: true, upsert: true }
+      );
+
+      res.status(200).json({
+        message: "Profile updated successfully",
+        data: updatedProfile,
       });
-    } else {
-      // Update existing profile
-      userProfile.bio = req.body.bio || userProfile.bio;
-      userProfile.image = req.files.image ? req.files.image[0].path : userProfile.image;
-      userProfile.cover = req.files.cover ? req.files.cover[0].path : userProfile.cover;
+    } catch (error) {
+      console.error("Error updating profile:", error.message);
+      res.status(500).json({ message: "Failed to update profile" });
     }
-
-    await userProfile.save();
-
-    res.json({
-      id: user._id,
-      fname: user.fname,
-      lname: user.lname,
-      email: user.email,
-      bio: userProfile.bio,
-      image: userProfile.image,
-      cover: userProfile.cover,
-    });
-  } catch (error) {
-    console.error("Error updating user profile:", error.message);
-    res.status(500).json({ message: "Server error" });
-  }
+  });
 };
-
 
 export { getUserProfile, updateUserProfile };
 
