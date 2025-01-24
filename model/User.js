@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
   fname: { type: String, required: true },
@@ -6,9 +6,10 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   isAdmin: { type: Boolean, default: false },
-  otp: { type: String }, // Temporary OTP for email verification
-  otpExpiresAt: { type: Date }, // OTP expiration time
+  otp: { type: String },
+  otpExpiresAt: { type: Date },
+  isVerified: { type: Boolean, default: false }, // New field to track verification
 });
 
-const User = mongoose.model('User', UserSchema);
+const User = mongoose.model("User", UserSchema);
 export default User;

@@ -1,8 +1,9 @@
+import crypto from "crypto";
 import User from "../model/User.js"; // Change require to import
 import sendEmail from "../utils/emailSender.js";
+import { generateEmailTemplate } from "../utils/generateEmailTemplate.js";
 import generateToken from "../utils/generateToken.js"; // Change require to import
 import { hashPassword, matchPassword } from "../utils/hashPassword.js"; // Change require to import
-import crypto from "crypto";
 // Register User
 const registerUser = async (req, res) => {
   const { fname, lname, email, password, isAdmin } = req.body;
@@ -15,7 +16,7 @@ const registerUser = async (req, res) => {
     }
 
     // Generate OTP
-    const otp = crypto.randomBytes(3).toString("hex").slice(0, 6); // Generates a 6-character OTP // Generate a 6-digit OTP
+    const otp = crypto.randomBytes(3).toString("hex").slice(0, 6); // Generates a 6-character OTP
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
 
     // Save the user temporarily with OTP and hashed password
@@ -30,11 +31,15 @@ const registerUser = async (req, res) => {
       otpExpiresAt,
     });
 
+    // Generate the email template with the OTP
+    const emailHtml = generateEmailTemplate(otp);
+
     // Send OTP to the user's email
     await sendEmail(
       email,
       "Your OTP for Registration",
-      `Your OTP for registration is: ${otp}. It will expire in 10 minutes.`
+      `Your OTP for registration is: ${otp}. It will expire in 10 minutes.`,
+      emailHtml // Pass the generated HTML template
     );
 
     res.status(201).json({
@@ -64,9 +69,10 @@ const verifyOtp = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // OTP is valid; clear the OTP fields
+    // OTP is valid; clear the OTP fields and mark the user as verified
     user.otp = undefined;
     user.otpExpiresAt = undefined;
+    user.isVerified = true; // Mark the user as verified
     await user.save();
 
     // Respond with a success message and token
@@ -80,31 +86,48 @@ const verifyOtp = async (req, res) => {
   }
 };
 
+
 // Login User
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    // Find the user by email
     const user = await User.findOne({ email });
 
-    // Check if user exists and the password matches
-    if (user && (await matchPassword(password, user.password))) {
-      res.json({
-        token: generateToken(user._id, user.isAdmin), // Include isAdmin in the token
-        user: {
-          _id: user._id,
-          email: user.email,
-          isAdmin: user.isAdmin, // Include isAdmin field
-        },
-      });
-    } else {
-      res.status(401).json({ message: "Invalid email or password" }); // Unauthorized
+    // Check if the user exists
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" }); // Unauthorized
     }
+
+    // Check if the user has verified their account
+    if (user.otp || user.otpExpiresAt) {
+      return res
+        .status(403) // Forbidden
+        .json({ message: "Account not verified. Please verify your email before logging in." });
+    }
+
+    // Check if the password matches
+    const isPasswordMatch = await matchPassword(password, user.password);
+    if (!isPasswordMatch) {
+      return res.status(401).json({ message: "Invalid email or password" }); // Unauthorized
+    }
+
+    // Generate and return the token with user details
+    res.json({
+      token: generateToken(user._id, user.isAdmin), // Include isAdmin in the token
+      user: {
+        _id: user._id,
+        email: user.email,
+        isAdmin: user.isAdmin, // Include isAdmin field
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" }); // Internal server error
   }
 };
+
 
 // Get All Users
 const getAllUsers = async (req, res) => {
