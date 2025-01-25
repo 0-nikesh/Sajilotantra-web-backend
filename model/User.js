@@ -9,6 +9,9 @@ const UserSchema = new mongoose.Schema({
   otp: { type: String },
   otpExpiresAt: { type: Date },
   isVerified: { type: Boolean, default: false }, // New field to track verification
+  resetToken: { type: String },
+  resetTokenExpiry: { type: Date },
+
 });
 
 const User = mongoose.model("User", UserSchema);

@@ -1,9 +1,12 @@
 import AdminJSExpress from "@adminjs/express"; // Correct import
 import * as AdminJSMongoose from "@adminjs/mongoose"; // Import everything as a namespace
 import AdminJS from "adminjs"; // Correct import
+import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import connectDB from "./config/db.js";
+//models import
+import Feedback from "./model/Feedback.js";
 import GovernmentProfile from "./model/GovernmentProfile.js";
 import Guidance from "./model/Guidance.js";
 import Notification from "./model/Notification.js";
@@ -12,6 +15,16 @@ import User from "./model/User.js";
 
 dotenv.config();
 connectDB();
+
+const app = express();
+app.use(express.json());
+const corsOptions = {
+  origin: ["http://localhost:5173"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 // Register AdminJS adapter for Mongoose
 AdminJS.registerAdapter(AdminJSMongoose);
@@ -22,11 +35,11 @@ AdminJS.registerAdapter(AdminJSMongoose);
 const adminJs = new AdminJS({
   resources: [
     { resource: User },
-    // { resource: UserProfile, options: { parent: { name: 'User Management' } } },
     { resource: Post },
     { resource: Guidance },
     { resource: Notification },
     { resource: GovernmentProfile },
+    { resource: Feedback },
     // { resource: Feedback, options: { parent: { name: 'Feedback Management' } } },
   ],
   rootPath: '/admin',
@@ -35,27 +48,26 @@ const adminJs = new AdminJS({
 // Create AdminJS router
 const adminRouter = AdminJSExpress.buildRouter(adminJs);
 
-const app = express();
-app.use(express.json());
+
 
 // Mount AdminJS router
 app.use(adminJs.options.rootPath, adminRouter);
 
 
-// import feedbackRoute from "./routes/FeedbackRoute.js";
+import feedbackRoute from "./routes/FeedbackRoute.js";
 // import guidanceRoute from "./routes/GuidanceRoute.js";
 // import notificationRoute from "./routes/NotificationRoute.js";
 import postRoute from "./routes/PostRoute.js";
-// import userProfileRoute from "./routes/UserProfileRoute.js";
+import userProfileRoute from "./routes/UserProfileRoute.js";
 import userRoute from "./routes/UserRoute.js";
 
 app.use("/api/users", userRoute);
 // app.use("/api/users", userProfileRoute);
-// app.use("/api/profiles", userProfileRoute);
+app.use("/api/profiles", userProfileRoute);
 app.use("/api/posts", postRoute);
 // app.use("/api/guidances", guidanceRoute);
 // app.use("/api/notifications", notificationRoute);
-// app.use("/api/feedbacks", feedbackRoute);
+app.use("/api/feedbacks", feedbackRoute);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

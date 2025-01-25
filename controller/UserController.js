@@ -166,5 +166,73 @@ const getProfile = async (req, res) => {
   }
 };
 
-export { deleteUser, getAllUsers, getProfile, getUserById, loginUser, registerUser, verifyOtp }; // Change module.exports to export
+const resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    // Find user with the reset token
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: Date.now() }, // Ensure token is not expired
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    // Hash the new password and update user
+    user.password = await hashPassword(newPassword);
+    user.resetToken = undefined;
+    user.resetTokenExpiry = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error in resetPassword:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const requestPasswordReset = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Find user by email
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "No account found with this email" });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // Valid for 10 minutes
+
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = resetTokenExpiry;
+    await user.save();
+
+    // Send reset email
+    const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+    const emailHtml = `
+      <div>
+        <h1>Password Reset Request</h1>
+        <p>Hello ${user.fname},</p>
+        <p>You requested to reset your password. Click the link below to reset it:</p>
+        <a href="${resetLink}">${resetLink}</a>
+        <p>This link will expire in 10 minutes.</p>
+        <p>If you did not request this, please ignore this email.</p>
+      </div>
+    `;
+    await sendEmail(email, "Password Reset Request", emailHtml);
+
+    res.status(200).json({ message: "Password reset link sent to your email" });
+  } catch (error) {
+    console.error("Error in requestPasswordReset:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+export { deleteUser, getAllUsers, getProfile, getUserById, loginUser, registerUser, requestPasswordReset, resetPassword, verifyOtp }; // Change module.exports to export
 
