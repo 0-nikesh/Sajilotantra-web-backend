@@ -2,6 +2,7 @@ import crypto from "crypto";
 import User from "../model/User.js"; // Change require to import
 import sendEmail from "../utils/emailSender.js";
 import { generateEmailTemplate } from "../utils/generateEmailTemplate.js";
+import generatePasswordResetEmail from "../utils/generateResetEmailTemplate.js"; // Import the updated email template
 import generateToken from "../utils/generateToken.js"; // Change require to import
 import { hashPassword, matchPassword } from "../utils/hashPassword.js"; // Change require to import
 // Register User
@@ -193,6 +194,7 @@ const resetPassword = async (req, res) => {
   }
 };
 
+
 const requestPasswordReset = async (req, res) => {
   const { email } = req.body;
 
@@ -212,18 +214,13 @@ const requestPasswordReset = async (req, res) => {
     user.resetTokenExpiry = resetTokenExpiry;
     await user.save();
 
-    // Send reset email
+    // Generate the reset link
     const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
-    const emailHtml = `
-      <div>
-        <h1>Password Reset Request</h1>
-        <p>Hello ${user.fname},</p>
-        <p>You requested to reset your password. Click the link below to reset it:</p>
-        <a href="${resetLink}">${resetLink}</a>
-        <p>This link will expire in 10 minutes.</p>
-        <p>If you did not request this, please ignore this email.</p>
-      </div>
-    `;
+
+    // Use the new email template
+    const emailHtml = generatePasswordResetEmail(resetLink, user.fname);
+
+    // Send the email
     await sendEmail(email, "Password Reset Request", emailHtml);
 
     res.status(200).json({ message: "Password reset link sent to your email" });

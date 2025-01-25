@@ -4,7 +4,6 @@ import {
   updateUserProfile,
 } from "../controller/UserProfileController.js";
 import { protect } from "../middleware/authMiddleware.js";
-import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
@@ -12,14 +11,6 @@ const router = express.Router();
 router.get("/profile", protect, getUserProfile);
 
 // Route to update the authenticated user's profile (with file upload)
-router.put(
-  "/profile",
-  protect,
-  upload.fields([
-    { name: "image", maxCount: 1 },
-    { name: "cover", maxCount: 1 },
-  ]),
-  updateUserProfile
-);
+router.put("/profile", protect, updateUserProfile);
 
 export default router;
