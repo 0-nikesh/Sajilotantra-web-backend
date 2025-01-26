@@ -47,7 +47,19 @@ const adminJs = new AdminJS({
       },
     },
     { resource: Post },
-    { resource: Guidance },
+    {
+      resource: Guidance,
+      options: {
+        properties: {
+          description: {
+            type: 'richtext', // Use built-in rich text editor
+          },
+          thumbnail: {
+            type: 'richtext',
+          },
+        },
+      },
+    },
     { resource: Notification },
     { resource: GovernmentProfile },
     { resource: Feedback },
