@@ -34,7 +34,18 @@ AdminJS.registerAdapter(AdminJSMongoose);
 // Initialize AdminJS
 const adminJs = new AdminJS({
   resources: [
-    { resource: User },
+    {
+      resource: User,
+      options: {
+        properties: {
+          password: { isVisible: false },
+          otp: { isVisible: false },
+          otpExpiresAt: { isVisible: false },
+          resetToken: { isVisible: false },
+          resetTokenExpiry: { isVisible: false },
+        },
+      },
+    },
     { resource: Post },
     { resource: Guidance },
     { resource: Notification },
