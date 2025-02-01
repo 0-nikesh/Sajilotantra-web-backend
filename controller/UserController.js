@@ -5,61 +5,76 @@ import { generateEmailTemplate } from "../utils/generateEmailTemplate.js";
 import generatePasswordResetEmail from "../utils/generateResetEmailTemplate.js"; // Import the updated email template
 import generateToken from "../utils/generateToken.js"; // Change require to import
 import { hashPassword, matchPassword } from "../utils/hashPassword.js"; // Change require to import
-// Register User
-const registerUser = async (req, res) => {
-  const { fname, lname, email, password, isAdmin } = req.body;
+import upload from "../utils/multer.js"; // Ensure multer is set up properly
 
+const registerUser = async (req, res) => {
   try {
-    // Check if the user already exists
+    const { fname, lname, email, password, isAdmin, bio, description } = req.body;
+
+    // Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Hash the password
+    const hashedPassword = await hashPassword(password);
+
     // Generate OTP
-    const otp = crypto.randomBytes(3).toString("hex").slice(0, 6); // Generates a 6-character OTP
+    const otp = crypto.randomBytes(3).toString("hex").slice(0, 6); // 6-character OTP
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
 
-    // Save the user temporarily with OTP and hashed password
-    const hashedPassword = await hashPassword(password);
-    const user = await User.create({
+    // Handle profile image (if uploaded)
+    let profileImage = null;
+    if (req.file) {
+      profileImage = req.file.path; // Cloudinary URL
+    }
+
+    // Create new user
+    const newUser = new User({
       fname,
       lname,
       email,
       password: hashedPassword,
-      isAdmin,
+      isAdmin: isAdmin || false,
       otp,
       otpExpiresAt,
+      image: profileImage, // Save the profile image URL
+      bio: bio || "", // Optional field
+      description: description || "", // Optional field
     });
 
-    // Generate the email template with the OTP
-    const emailHtml = generateEmailTemplate(otp);
+    // Save the user to the database
+    await newUser.save();
 
-    // Send OTP to the user's email
+    // Send OTP via email
+    const emailHtml = generateEmailTemplate(otp);
     await sendEmail(
       email,
       "Your OTP for Registration",
-      `Your OTP for registration is: ${otp}. It will expire in 10 minutes.`,
-      emailHtml // Pass the generated HTML template
+      `Your OTP is: ${otp}. It will expire in 10 minutes.`,
+      emailHtml
     );
 
     res.status(201).json({
       message: "OTP sent to your email. Please verify your account.",
-      userId: user._id, // Include the user ID for OTP verification
+      userId: newUser._id,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error during registration:", error);
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
-//verify otp
+
 const verifyOtp = async (req, res) => {
-  const { userId, otp } = req.body;
+  const { email, otp } = req.body; // Accept email instead of userId
+
+  console.log("Verify Attempted", req.body);
 
   try {
-    // Find the user by ID
-    const user = await User.findById(userId);
+    // Find the user by email
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -86,6 +101,7 @@ const verifyOtp = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 // Login User
@@ -230,6 +246,77 @@ const requestPasswordReset = async (req, res) => {
   }
 };
 
+const getUserProfile = async (req, res) => {
+  try {
+    console.log("Authenticated User:", req.user);
+    const user = await User.findById(req.user.id).select("-password");
 
-export { deleteUser, getAllUsers, getProfile, getUserById, loginUser, registerUser, requestPasswordReset, resetPassword, verifyOtp }; // Change module.exports to export
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      id: user._id,
+      fname: user.fname,
+      lname: user.lname,
+      email: user.email,
+      bio: user.bio,
+      image: user.image,
+      cover: user.cover,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user profile", error: error.message });
+  }
+};
+
+
+const updateUserProfile = async (req, res) => {
+  req.folder = `user-profile/${req.user.id}`;
+
+  upload.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "coverImage", maxCount: 1 },
+  ])(req, res, async (err) => {
+    if (err) {
+      console.error("Multer error:", err);
+      return res.status(500).json({ message: "File upload failed", error: err });
+    }
+
+    try {
+      const { bio } = req.body;
+      const updates = {};
+
+      if (req.files && req.files.profileImage && req.files.profileImage[0]) {
+        updates.image = req.files.profileImage[0].path;
+      }
+
+      if (req.files && req.files.coverImage && req.files.coverImage[0]) {
+        updates.cover = req.files.coverImage[0].path;
+      }
+
+      if (bio) {
+        updates.bio = bio;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "Nothing to update" });
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(req.user.id, updates, { new: true });
+
+      res.status(200).json({
+        message: "Profile updated successfully",
+        data: updatedUser,
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error.message);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+};
+
+
+
+
+export { deleteUser, getAllUsers, getProfile, getUserById, getUserProfile, loginUser, registerUser, requestPasswordReset, resetPassword, updateUserProfile, verifyOtp }; // Change module.exports to export
 
