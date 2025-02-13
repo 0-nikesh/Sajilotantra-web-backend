@@ -1,12 +1,12 @@
-const mongoose = require("mongoose");
-
+import mongoose from "mongoose";
 const FeedbackSchema = new mongoose.Schema({
   Category: Number,
   suggestion: Number,
-  file: String,
+  files: [String], // Array of image URLs
   feedback: String,
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 });
 
 
-module.exports = mongoose.model("Feedback", FeedbackSchema);
+const Feedback = mongoose.model("Feedback", FeedbackSchema);
+export default Feedback;
