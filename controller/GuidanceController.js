@@ -80,9 +80,10 @@ const getAllGuidances = async (req, res) => {
 };
 
 // Get a single guidance by ID (Accessible to all users)
+// Get a single guidance by ID (Accessible to all users)
 const getGuidanceById = async (req, res) => {
   try {
-    const guidance = await Guidance.findById(req.params.id);
+    const guidance = await Guidance.findById(req.params.id).populate("government_profile");
     if (!guidance) {
       return res.status(404).json({ message: "Guidance not found." });
     }
@@ -92,6 +93,7 @@ const getGuidanceById = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch guidance.", error: error.message });
   }
 };
+
 
 
 const updateGuidance = async (req, res) => {
@@ -172,8 +174,6 @@ const updateDocumentTracking = async (req, res) => {
 export {
   createGuidance,
   getAllGuidances,
-  getGuidanceById,
-  updateGuidance, 
-  updateDocumentTracking
+  getGuidanceById, updateDocumentTracking, updateGuidance
 };
 
