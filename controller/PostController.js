@@ -41,9 +41,24 @@ const getAllPosts = async (req, res) => {
 };
 
 const getPostById = async (req, res) => {
-  const post = await Post.findById(req.params.id);
-  if (post) res.json(post);
-  else res.status(404).json({ message: "Post not found" });
+  const { id } = req.params;
+
+  // Validate that the id is a valid ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid Post ID" });
+  }
+
+  try {
+    const post = await Post.findById(id);
+    if (post) {
+      res.json(post);
+    } else {
+      res.status(404).json({ message: "Post not found" });
+    }
+  } catch (error) {
+    console.error("Error fetching post by ID:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 const deletePost = async (req, res) => {
