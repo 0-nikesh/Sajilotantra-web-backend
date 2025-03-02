@@ -1,24 +1,23 @@
 import express from "express";
-import multer from "multer"; // For file uploads
 import {
     createGovernmentProfile,
     deleteGovernmentProfile,
+    findNearestLocation,
     getAllGovernmentProfiles,
     getGovernmentProfileById,
     updateGovernmentProfile,
-} from "../controller/GovernmentController.js";
+} from "../controller/GovernmentProfileController.js";
 import { admin, protect } from "../middleware/authMiddleware.js";
-
-// Configure multer for file uploads
-const upload = multer({ dest: "uploads/" }); // Temporary storage in `uploads/`
+import upload from "../utils/multer.js"; // Use your existing Cloudinary-based multer configuration
 
 const router = express.Router();
 
-// Admin-only routes for government profiles
-router.post("/", protect, admin, upload.single("thumbnail"), createGovernmentProfile); // Create a new profile
-router.get("/", protect, admin, getAllGovernmentProfiles); // Get all profiles
-router.get("/:id", protect, admin, getGovernmentProfileById); // Get a single profile by ID
-router.put("/:id", protect, admin, upload.single("thumbnail"), updateGovernmentProfile); // Update a profile
-router.delete("/:id", protect, admin, deleteGovernmentProfile); // Delete a profile
+router.post("/create", protect, admin, upload.single("thumbnail"), createGovernmentProfile);
+router.get("/", protect, getAllGovernmentProfiles);
+router.get("/:id", protect, getGovernmentProfileById);
+router.put("/:id", protect, admin, upload.single("thumbnail"), updateGovernmentProfile);
+router.delete("/:id", protect, admin, deleteGovernmentProfile);
+router.get("/nearest", protect, findNearestLocation);
 
 export default router;
+
