@@ -172,16 +172,23 @@ const deleteUser = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    console.log("Authenticated User:", req.user); // Debug
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
     const user = await User.findById(req.user.id).select("-password");
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch user profile", error: error.message });
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({ message: "Failed to fetch user profile" });
   }
 };
+
 
 const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
@@ -269,6 +276,23 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+const getUserProfilePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Fetch user profile details (excluding password)
+    const user = await User.findById(id).select("fname lname email image cover location bio");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({ message: "Error fetching user profile" });
+  }
+};
 
 const updateUserProfile = async (req, res) => {
   req.folder = `user-profile/${req.user.id}`;
@@ -318,5 +342,5 @@ const updateUserProfile = async (req, res) => {
 
 
 
-export { deleteUser, getAllUsers, getProfile, getUserById, getUserProfile, loginUser, registerUser, requestPasswordReset, resetPassword, updateUserProfile, verifyOtp }; // Change module.exports to export
+export { deleteUser, getAllUsers, getProfile, getUserById, getUserProfile, getUserProfilePost, loginUser, registerUser, requestPasswordReset, resetPassword, updateUserProfile, verifyOtp }; // Change module.exports to export
 
