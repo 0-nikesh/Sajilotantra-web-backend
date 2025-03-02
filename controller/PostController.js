@@ -1,6 +1,10 @@
+import io from '../app.js'; // Import io instance
+import Notification from "../model/Notification.js"; // Ensure correct path to Notification model
 import Post from "../model/Post.js";
 import upload from "../utils/multer.js"; // Multer middleware for Cloudinary uploads
 import createUserNotification from '../utils/notificationHelper.js';
+
+
 const createPost = async (req, res) => {
   req.folder = `posts/${req.user.id}`; // Cloudinary folder for posts
 
@@ -67,35 +71,37 @@ const deletePost = async (req, res) => {
   else res.status(404).json({ message: "Post not found" });
 };
 
+
 const likePost = async (req, res) => {
   try {
     const postId = req.params.id;
-    const userId = req.user._id; // Assuming user ID is available in `req.user`
+    const userId = req.user._id;
 
     const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: "Post not found" });
 
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
-
-    // Check if user has already liked the post
     if (post.liked_by.includes(userId)) {
       return res.status(400).json({ message: "You have already liked this post" });
     }
 
-    // Add user to the liked_by array and increment like count
     post.liked_by.push(userId);
     post.like_count += 1;
-
     await post.save();
 
-    // Send notification to the post owner
-    if (post.user_id.toString() !== userId.toString()) { // Avoid notifying the user if they like their own post
-      await createUserNotification(
-        "Post Liked",
-        `Your post "${post.caption}" was liked by ${req.user.name || "a user"}.`,
-        post.user_id
-      );
+    if (post.user_id.toString() !== userId.toString()) {
+      const notification = {
+        title: "Post Liked",
+        description: `Your post "${post.caption}" was liked by ${req.user.name || "a user"}.`,
+        user_id: post.user_id,
+        date_posted: new Date(),
+      };
+
+      // Save to database
+      await Notification.create(notification);
+
+      // Emit real-time notification
+      io.to(post.user_id.toString()).emit("notification", notification);
+      console.log(`Notification sent to user: ${post.user_id}`);
     }
 
     res.json({ message: "Post liked successfully", post });
@@ -145,14 +151,15 @@ const addComment = async (req, res) => {
 
 const getCommentsForPost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate("comments.user", "fname lname email"); // Populate user details
+    const post = await Post.findById(req.params.id).populate("comments.user", "fname lname image"); // Fetch user details
+
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
 
     res.json({
       postId: post._id,
-      comments: post.comments, // Return all comments with user details
+      comments: post.comments, // Return comments with user details
     });
   } catch (error) {
     console.error("Error fetching comments:", error);
@@ -160,7 +167,25 @@ const getCommentsForPost = async (req, res) => {
   }
 };
 
+const getUserPosts = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Fetch posts for a specific user
+    const posts = await Post.find({ user_id: userId })
+      .populate("user_id", "fname lname image") // Fetch user details
+      .sort({ created_at: -1 }); // Show recent posts first
+
+    res.json({ posts });
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    res.status(500).json({ message: "Error fetching user posts" });
+  }
+};
 
 
-export { addComment, createPost, deletePost, getAllPosts, getCommentsForPost, getPostById, likePost };
+
+
+
+export { addComment, createPost, deletePost, getAllPosts, getCommentsForPost, getPostById, likePost, getUserPosts };
 
